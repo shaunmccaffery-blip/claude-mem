@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Business Video Generator</title>
+    <style>
+      body { font-family: Inter, system-ui, sans-serif; margin: 2rem auto; max-width: 760px; padding: 0 1rem; }
+      h1 { margin-bottom: 0.3rem; }
+      .muted { color: #666; margin-top: 0; }
+      form { display: grid; gap: 0.75rem; margin-top: 1rem; }
+      textarea, select, button, input { padding: 0.6rem; font-size: 1rem; }
+      button { cursor: pointer; border: none; background: #111; color: #fff; border-radius: 0.4rem; }
+      #result { margin-top: 1rem; padding: 0.8rem; border-radius: 0.4rem; background: #f5f5f5; white-space: pre-wrap; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Business Video Generator</h1>
+    <p class="muted">Create marketing videos using a Sora-compatible API endpoint.</p>
+
+    <form id="videoForm">
+      <label>
+        Prompt
+        <textarea id="prompt" rows="4" placeholder="A cinematic 10-second ad for my bakery with morning sunlight and slow-motion bread slicing" required></textarea>
+      </label>
+      <div class="row">
+        <label>
+          Duration (seconds)
+          <input id="duration" type="number" min="3" max="20" value="5" />
+        </label>
+        <label>
+          Aspect ratio
+          <select id="aspectRatio">
+            <option value="16:9">16:9 (landscape)</option>
+            <option value="9:16">9:16 (reel/tiktok)</option>
+            <option value="1:1">1:1 (square)</option>
+          </select>
+        </label>
+      </div>
+      <button type="submit">Generate video</button>
+    </form>
+
+    <div id="result">Waiting for request…</div>
+
+    <script>
+      const form = document.getElementById("videoForm");
+      const result = document.getElementById("result");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        result.textContent = "Submitting request…";
+
+        const payload = {
+          prompt: document.getElementById("prompt").value,
+          duration: Number(document.getElementById("duration").value),
+          aspectRatio: document.getElementById("aspectRatio").value
+        };
+
+        try {
+          const response = await fetch("/api/generate-video", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || "Generation failed");
+          }
+
+          const lines = [
+            `Status: ${data.status}`,
+            `Request ID: ${data.id || "(none)"}`,
+            data.videoUrl ? `Video URL: ${data.videoUrl}` : "Video URL: not returned yet"
+          ];
+
+          result.textContent = lines.join("\n");
+        } catch (error) {
+          result.textContent = `Error: ${error.message}`;
+        }
+      });
+    </script>
+  </body>
+</html>
