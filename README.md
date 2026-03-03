@@ -314,3 +314,7 @@ See the [LICENSE](LICENSE) file for full details.
 ---
 
 **Built with Claude Agent SDK** | **Powered by Claude Code** | **Made with TypeScript**
+
+## New Guide
+
+- [AI “Money Bot” Blueprint](docs/ai-money-bot-blueprint.md)
