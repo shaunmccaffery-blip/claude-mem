@@ -1,0 +1,164 @@
+:root {
+  color-scheme: dark;
+  --bg: #090b10;
+  --panel: #121622;
+  --panel-2: #171d2d;
+  --text: #e8ecf8;
+  --muted: #a6b0ce;
+  --accent: #64f0b4;
+  --accent-2: #95d8ff;
+  --danger: #ff5f7a;
+  --border: #2a3555;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: radial-gradient(circle at 15% 10%, #1a2442 0%, var(--bg) 50%);
+  color: var(--text);
+}
+
+.container {
+  width: min(920px, 92vw);
+  margin: 3rem auto;
+  display: grid;
+  gap: 1.25rem;
+}
+
+.hero,
+.card {
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.25rem;
+}
+
+.eyebrow {
+  color: var(--accent);
+  font-size: 0.8rem;
+  letter-spacing: 0.15em;
+  font-weight: 700;
+  margin: 0 0 0.6rem;
+}
+
+h1,
+h2 {
+  margin-top: 0;
+}
+
+.intro,
+.muted {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+ul {
+  padding-left: 1.1rem;
+}
+
+label {
+  display: block;
+  margin: 0.8rem 0 0.35rem;
+  font-weight: 600;
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #0b1020;
+  color: var(--text);
+  padding: 0.7rem 0.75rem;
+}
+
+input:focus,
+textarea:focus,
+button:focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 1px;
+}
+
+button {
+  margin-top: 1rem;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, var(--accent), #4ed6ff);
+  color: #001a15;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+button.secondary {
+  margin-top: 0;
+  background: #222d47;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.checkbox {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.checkbox input {
+  width: auto;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.form-message {
+  min-height: 1.5rem;
+  margin: 0.6rem 0 0;
+  color: var(--accent);
+}
+
+.form-message.error {
+  color: var(--danger);
+}
+
+.question-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.question-list li {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem;
+  background: #0d1223;
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 0.86rem;
+  margin-bottom: 0.35rem;
+}
+
+.footer {
+  width: min(920px, 92vw);
+  margin: 0 auto 3rem;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.92rem;
+}
