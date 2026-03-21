@@ -1,0 +1,42 @@
+bankroll_usd: 10000
+scan_interval_minutes: 45
+min_markets: 40
+max_markets: 80
+edge_threshold: 0.08
+kelly_fraction: 0.25
+max_position_pct: 0.25
+max_total_open_risk_pct: 0.55
+max_signals_per_day: 4
+min_price: 0.05
+max_price: 0.95
+
+llm_provider: "ollama"   # ollama | openai | anthropic
+llm_model: "llama3.1:70b"
+llm_temperature: 0.0
+llm_top_p: 0.95
+llm_timeout_seconds: 45
+llm_self_critique: true
+llm_enable_cot_for_controversial: true
+llm_fewshot_examples:
+  - market: "Will CPI YoY print above 3.2% in April 2026?"
+    context: "Inflation trend cooling but sticky shelter"
+    p_yes: 0.41
+  - market: "Will candidate X win state Y in 2026?"
+    context: "Polling error bands + turnout uncertainty"
+    p_yes: 0.53
+
+gamma_api_base: "https://gamma-api.polymarket.com"
+graph_api_url: "https://api.thegraph.com/subgraphs/name/protofire/polymarket-matic"
+request_timeout_seconds: 20
+cache_ttl_seconds: 180
+
+dry_run: true
+execution_enabled: false
+
+telegram_enabled: false
+webhook_enabled: false
+webhook_host: "0.0.0.0"
+webhook_port: 8080
+
+log_jsonl_path: "logs/decisions.jsonl"
+db_path: "logs/polymarket_bot.db"
