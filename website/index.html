@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ask Me Anything — Unfiltered Truth</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="hero">
+        <p class="eyebrow">NO-FILTER HUMAN ANSWERS</p>
+        <h1>Ask Me Anything. Get My Honest Truth.</h1>
+        <p class="intro">
+          I live with a form of autism where one of my strongest traits is compulsive truth-telling.
+          I can lie, but it feels physically distressing — like a thousand bees stinging my brain.
+          So I built this space for one thing: direct, unfiltered honesty.
+        </p>
+      </header>
+
+      <section class="card" aria-labelledby="about-title">
+        <h2 id="about-title">Why ask me?</h2>
+        <ul>
+          <li>I’m 34 and I’ve lived a wildly varied life.</li>
+          <li>Army service, prison (gaol), entrepreneurship, wealth, and bankruptcy.</li>
+          <li>Parenthood, addiction, recovery, and many relationships.</li>
+          <li>Travel to every continent and nearly every country on earth.</li>
+          <li>Relentless curiosity and deep hyperfocus across countless topics.</li>
+        </ul>
+        <p>
+          I’m not a psychologist or licensed counselor. What I offer is lived experience,
+          pattern recognition, and direct perspective.
+        </p>
+      </section>
+
+      <section class="card" aria-labelledby="ask-title">
+        <h2 id="ask-title">Ask your question</h2>
+        <p class="muted">Question, dilemma, opinion, business, relationships, life strategy — anything.</p>
+
+        <form id="question-form" novalidate>
+          <label for="name">Your name (optional)</label>
+          <input id="name" name="name" type="text" maxlength="60" placeholder="Anonymous is fine" />
+
+          <label for="question">Your question</label>
+          <textarea
+            id="question"
+            name="question"
+            rows="6"
+            maxlength="1200"
+            required
+            placeholder="Write your question here..."
+          ></textarea>
+
+          <div class="form-row">
+            <label class="checkbox">
+              <input id="private" name="private" type="checkbox" />
+              Keep this question private (not shown on this page)
+            </label>
+          </div>
+
+          <button type="submit">Send Question</button>
+          <p id="form-message" class="form-message" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+
+      <section class="card" aria-labelledby="wall-title">
+        <h2 id="wall-title">Question Wall</h2>
+        <p class="muted">Public questions are shown here. You can delete all local entries at any time.</p>
+        <div class="actions">
+          <button id="clear-btn" class="secondary" type="button">Clear Local Questions</button>
+        </div>
+        <ul id="question-list" class="question-list"></ul>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        Built for radical honesty. No AI filters. No scripted responses. Just one human being truthful.
+      </p>
+    </footer>
+
+    <script src="./script.js" type="module"></script>
+  </body>
+</html>
