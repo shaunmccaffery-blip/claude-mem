@@ -1,0 +1,18 @@
+from __future__ import annotations
+
+import sqlite3
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS markets (market_id TEXT PRIMARY KEY, payload TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS orderbooks (token_id TEXT, payload TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS opportunities (market_id TEXT, payload TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS trades (id INTEGER PRIMARY KEY, payload TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS wallet_trades (id INTEGER PRIMARY KEY, payload TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS wallet_scores (wallet TEXT, payload TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS bot_runs (id INTEGER PRIMARY KEY, run_type TEXT, status TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP);
+"""
+
+
+def init_db(path: str) -> None:
+    with sqlite3.connect(path) as conn:
+        conn.executescript(SCHEMA)
