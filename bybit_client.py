@@ -48,6 +48,7 @@ class BybitError(RuntimeError):
 class BybitConfig:
     api_key: Optional[str] = None
     api_secret: Optional[str] = None
+    private_key_path: Optional[str] = None
     testnet: bool = True
     execution_enabled: bool = False
 
@@ -56,11 +57,16 @@ class BybitConfig:
         return cls(
             api_key=os.getenv("BYBIT_API_KEY") or None,
             api_secret=os.getenv("BYBIT_API_SECRET") or None,
+            private_key_path=os.getenv("BYBIT_PRIVATE_KEY_PATH") or None,
             # Default to testnet so a misconfigured run can't touch real funds.
             testnet=os.getenv("BYBIT_TESTNET", "true").lower() != "false",
             execution_enabled=os.getenv("BYBIT_EXECUTION_ENABLED", "false").lower()
             == "true",
         )
+
+    @property
+    def use_rsa(self) -> bool:
+        return bool(self.private_key_path)
 
 
 class BybitClient:
@@ -68,19 +74,51 @@ class BybitClient:
         self.config = config or BybitConfig.from_env()
         self.base_url = TESTNET_BASE if self.config.testnet else MAINNET_BASE
         self.session = requests.Session()
+        self._private_key = None  # lazily loaded RSA key
 
     # -- internals ---------------------------------------------------------
 
     def _require_auth(self) -> None:
-        if not (self.config.api_key and self.config.api_secret):
+        if not self.config.api_key:
             raise BybitError(
-                "BYBIT_API_KEY / BYBIT_API_SECRET not set. Add them to your "
-                ".env file (which is gitignored) — never hardcode them."
+                "BYBIT_API_KEY not set. Add it to your .env file (gitignored)."
+            )
+        if not (self.config.api_secret or self.config.private_key_path):
+            raise BybitError(
+                "Set BYBIT_API_SECRET (HMAC) or BYBIT_PRIVATE_KEY_PATH (RSA) "
+                "in your .env file — never hardcode credentials."
             )
 
+    def _load_private_key(self):
+        if self._private_key is None:
+            try:
+                from cryptography.hazmat.primitives.serialization import (
+                    load_pem_private_key,
+                )
+            except ImportError as exc:  # pragma: no cover
+                raise BybitError(
+                    "RSA auth needs the 'cryptography' package "
+                    "(pip install cryptography)."
+                ) from exc
+            with open(self.config.private_key_path, "rb") as fh:
+                self._private_key = load_pem_private_key(fh.read(), password=None)
+        return self._private_key
+
     def _sign(self, timestamp: str, payload: str) -> str:
-        # V5 scheme: HMAC_SHA256(secret, timestamp + api_key + recv_window + payload)
+        # Origin string is identical for both schemes.
         origin = f"{timestamp}{self.config.api_key}{RECV_WINDOW}{payload}"
+        if self.config.use_rsa:
+            # RSA: PKCS1v15 over SHA256, base64-encoded.
+            import base64
+
+            from cryptography.hazmat.primitives import hashes
+            from cryptography.hazmat.primitives.asymmetric import padding
+
+            signature = self._load_private_key().sign(
+                origin.encode(), padding.PKCS1v15(), hashes.SHA256()
+            )
+            return base64.b64encode(signature).decode()
+        # HMAC-SHA256 with the API secret.
         return hmac.new(
             self.config.api_secret.encode(),
             origin.encode(),
