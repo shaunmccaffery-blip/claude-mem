@@ -56,12 +56,15 @@ def cmd_nansen(args: argparse.Namespace) -> int:
     from nansen_client import NansenClient
 
     client = NansenClient()
-    if args.nansen_cmd == "smart-money":
-        print(json.dumps(client.smart_money_holdings(chain=args.chain), indent=2))
-    elif args.nansen_cmd == "flows":
-        print(json.dumps(client.token_flows(args.token, chain=args.chain), indent=2))
-    elif args.nansen_cmd == "pnl":
-        print(json.dumps(client.wallet_pnl(args.address, chain=args.chain), indent=2))
+    if args.nansen_cmd == "screener":
+        result = client.token_screener(
+            chains=args.chains,
+            timeframe=args.timeframe,
+            only_smart_money=not args.all,
+            order_by_field=args.order_by,
+            per_page=args.per_page,
+        )
+        print(json.dumps(result, indent=2))
     return 0
 
 
@@ -88,14 +91,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     n = sub.add_parser("nansen", help="Nansen on-chain analytics")
     nsub = n.add_subparsers(dest="nansen_cmd", required=True)
-    sm = nsub.add_parser("smart-money")
-    sm.add_argument("--chain", default="ethereum")
-    fl = nsub.add_parser("flows")
-    fl.add_argument("token")
-    fl.add_argument("--chain", default="ethereum")
-    pn = nsub.add_parser("pnl")
-    pn.add_argument("address")
-    pn.add_argument("--chain", default="ethereum")
+    sc = nsub.add_parser("screener", help="Token screener by smart-money flow")
+    sc.add_argument("--chains", nargs="+", default=["ethereum", "solana", "base"])
+    sc.add_argument("--timeframe", default="24h")
+    sc.add_argument("--order-by", default="netflow")
+    sc.add_argument("--per-page", type=int, default=100)
+    sc.add_argument("--all", action="store_true", help="Include non-smart-money")
     n.set_defaults(func=cmd_nansen)
 
     return p

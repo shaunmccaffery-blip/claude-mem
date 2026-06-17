@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -84,29 +84,36 @@ class NansenClient:
             raise NansenError(f"Nansen {resp.status_code} on {path}: {resp.text[:300]}")
         return resp.json()
 
-    # -- convenience wrappers (verify paths against current Nansen docs) ----
+    # -- verified endpoints ------------------------------------------------
 
-    def smart_money_holdings(self, chain: str = "ethereum", **params: Any) -> Any:
-        """Smart-money token holdings for a chain."""
-        return self.request(
-            "POST", "smart-money/holdings", json_body={"chain": chain, **params}
-        )
+    def token_screener(
+        self,
+        chains: Optional[List[str]] = None,
+        timeframe: str = "24h",
+        only_smart_money: bool = True,
+        order_by_field: str = "netflow",
+        order_by_direction: str = "DESC",
+        page: int = 1,
+        per_page: int = 100,
+        extra_filters: Optional[Dict[str, Any]] = None,
+    ) -> Any:
+        """
+        Token screener — rank tokens by smart-money flow across chains.
 
-    def token_flows(self, token_address: str, chain: str = "ethereum", **params: Any) -> Any:
-        """Inflow/outflow analytics for a token."""
-        return self.request(
-            "POST",
-            "token/flows",
-            json_body={"chain": chain, "tokenAddress": token_address, **params},
-        )
-
-    def wallet_pnl(self, address: str, chain: str = "ethereum", **params: Any) -> Any:
-        """Profit/loss profile for a wallet address."""
-        return self.request(
-            "POST",
-            "profiler/pnl",
-            json_body={"chain": chain, "walletAddress": address, **params},
-        )
+        Mirrors POST /token-screener:
+          {chains, timeframe, filters, order_by, pagination}
+        """
+        filters: Dict[str, Any] = {"only_smart_money": only_smart_money}
+        if extra_filters:
+            filters.update(extra_filters)
+        body = {
+            "chains": chains or ["ethereum", "solana", "base"],
+            "timeframe": timeframe,
+            "filters": filters,
+            "order_by": [{"field": order_by_field, "direction": order_by_direction}],
+            "pagination": {"page": page, "per_page": per_page},
+        }
+        return self.request("POST", "token-screener", json_body=body)
 
 
 def _demo() -> None:
@@ -114,7 +121,7 @@ def _demo() -> None:
     if not client.config.api_key:
         print("(no NANSEN_API_KEY set — set it in .env to test)")
         return
-    print("smart money (ethereum):", client.smart_money_holdings())
+    print("token screener:", client.token_screener(per_page=10))
 
 
 if __name__ == "__main__":
