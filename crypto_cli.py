@@ -68,6 +68,31 @@ def cmd_nansen(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_signal(args: argparse.Namespace) -> int:
+    from crypto_strategy import generate_proposals
+
+    proposals = generate_proposals(
+        bankroll_usd=args.bankroll,
+        chains=args.chains,
+        timeframe=args.timeframe,
+        only_smart_money=not args.all,
+        edge_per_signal=args.edge,
+        kelly_fraction=args.kelly_fraction,
+        max_position_pct=args.max_position_pct,
+        top_n=args.top,
+    )
+    if not proposals:
+        print("no tradable proposals")
+        return 0
+    for p in proposals:
+        print(
+            f"{p.token:>8} -> {p.bybit_symbol:<12} "
+            f"netflow={p.netflow}  px={p.last_price}  size=${p.suggested_usd}"
+        )
+    print("\n(proposals only — no orders placed)")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Bybit + Nansen crypto CLI")
     sub = p.add_subparsers(dest="command", required=True)
@@ -98,6 +123,17 @@ def build_parser() -> argparse.ArgumentParser:
     sc.add_argument("--per-page", type=int, default=100)
     sc.add_argument("--all", action="store_true", help="Include non-smart-money")
     n.set_defaults(func=cmd_nansen)
+
+    sg = sub.add_parser("signal", help="Nansen->Bybit sized proposals (dry, no orders)")
+    sg.add_argument("--bankroll", type=float, required=True)
+    sg.add_argument("--chains", nargs="+", default=["ethereum", "solana", "base"])
+    sg.add_argument("--timeframe", default="24h")
+    sg.add_argument("--edge", type=float, default=0.05)
+    sg.add_argument("--kelly-fraction", type=float, default=0.25)
+    sg.add_argument("--max-position-pct", type=float, default=0.25)
+    sg.add_argument("--top", type=int, default=10)
+    sg.add_argument("--all", action="store_true", help="Include non-smart-money")
+    sg.set_defaults(func=cmd_signal)
 
     return p
 
