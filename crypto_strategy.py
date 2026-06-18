@@ -67,6 +67,7 @@ def generate_proposals(
     top_n: int = 10,
     use_claude: bool = False,
     min_confidence: float = 0.6,
+    full_send_confidence: float = 1.1,
     allow_shorts: bool = False,
     use_market_data: bool = False,
     nansen: Optional[NansenClient] = None,
@@ -177,8 +178,17 @@ def generate_proposals(
                     symbol, verdict.confidence, verdict.rationale,
                 )
                 continue
-            # Scale size by the analyst's confidence.
-            usd = round(usd * verdict.confidence, 2)
+            if verdict.confidence >= full_send_confidence:
+                # Strong enough signal: allocate the entire bankroll to this trade.
+                usd = round(bankroll_usd, 2)
+                extras["full_send"] = True
+                logger.info(
+                    "FULL SEND %s at confidence %.2f -> $%s",
+                    symbol, verdict.confidence, usd,
+                )
+            else:
+                # Otherwise scale size by the analyst's confidence.
+                usd = round(usd * verdict.confidence, 2)
 
         proposals.append(
             Proposal(
@@ -196,18 +206,37 @@ def generate_proposals(
     return proposals
 
 
+def _round_price(price: float) -> str:
+    """Round a TP/SL price to a sensible precision for its magnitude.
+
+    Bybit enforces a per-symbol tick size; this is a best-effort approximation
+    and an order may still be rejected for tick mismatch (logged, not fatal).
+    """
+    if price >= 100:
+        return f"{price:.2f}"
+    if price >= 1:
+        return f"{price:.4f}"
+    return f"{price:.8f}"
+
+
 def place_proposals(
     proposals: List[Proposal],
     leverage: int = 10,
+    tp_pct: float = 20.0,
+    sl_pct: float = 10.0,
     bybit: Optional[BybitClient] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Set leverage and place a market order (side per proposal) for each candidate.
+    Set leverage and place a market order (side per proposal) for each candidate,
+    attaching a take-profit and stop-loss as PRICE-move percentages.
+
+    tp_pct / sl_pct are percentage price moves in the trade's direction:
+    long  -> TP = entry*(1+tp), SL = entry*(1-sl); short is mirrored.
 
     SAFETY: both set_leverage and place_order are no-op dry runs unless
     BYBIT_EXECUTION_ENABLED=true. Quantity is sized from suggested_usd /
     last_price; Bybit may reject orders below a symbol's minimum quantity or with
-    the wrong step size — those errors are logged per-token, not fatal.
+    the wrong tick/step size — those errors are logged per-token, not fatal.
     """
     bybit = bybit or BybitClient()
     results: List[Dict[str, Any]] = []
@@ -219,17 +248,32 @@ def place_proposals(
         except Exception as exc:
             logger.warning("set_leverage failed for %s: %s", p.bybit_symbol, exc)
         qty = str(round(p.suggested_usd / p.last_price, 6))
+
+        # TP/SL as price moves in the trade direction.
+        entry = p.last_price
+        if p.side == "Buy":
+            tp = _round_price(entry * (1 + tp_pct / 100))
+            sl = _round_price(entry * (1 - sl_pct / 100))
+        else:
+            tp = _round_price(entry * (1 - tp_pct / 100))
+            sl = _round_price(entry * (1 + sl_pct / 100))
+
         try:
             res = bybit.place_order(
-                symbol=p.bybit_symbol, side=p.side, qty=qty, category="linear"
+                symbol=p.bybit_symbol,
+                side=p.side,
+                qty=qty,
+                category="linear",
+                take_profit=tp,
+                stop_loss=sl,
             )
             results.append(
                 {"symbol": p.bybit_symbol, "side": p.side, "qty": qty,
-                 "leverage": leverage, "result": res}
+                 "leverage": leverage, "tp": tp, "sl": sl, "result": res}
             )
             logger.info(
-                "order %s %s qty=%s lev=%sx -> %s",
-                p.bybit_symbol, p.side, qty, leverage, res,
+                "order %s %s qty=%s lev=%sx tp=%s sl=%s -> %s",
+                p.bybit_symbol, p.side, qty, leverage, tp, sl, res,
             )
         except Exception as exc:
             logger.warning("order failed for %s: %s", p.bybit_symbol, exc)

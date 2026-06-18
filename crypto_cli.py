@@ -105,6 +105,7 @@ def cmd_signal(args: argparse.Namespace) -> int:
         top_n=args.top,
         use_claude=args.claude,
         min_confidence=args.min_confidence,
+        full_send_confidence=args.full_send_confidence,
         allow_shorts=args.shorts,
         use_market_data=args.market,
     )
@@ -148,7 +149,9 @@ def cmd_signal(args: argparse.Namespace) -> int:
                 print("Aborted — no orders placed.")
                 return 0
 
-    results = place_proposals(proposals, leverage=args.leverage)
+    results = place_proposals(
+        proposals, leverage=args.leverage, tp_pct=args.tp, sl_pct=args.sl
+    )
     print(json.dumps(results, indent=2))
     return 0
 
@@ -199,6 +202,10 @@ def build_parser() -> argparse.ArgumentParser:
     sg.add_argument("--min-confidence", type=float, default=0.6, help="Min Claude confidence to keep")
     sg.add_argument("--execute", action="store_true", help="Place orders (needs BYBIT_EXECUTION_ENABLED=true)")
     sg.add_argument("--leverage", type=int, default=10, help="Contract leverage to set per symbol")
+    sg.add_argument("--tp", type=float, default=20.0, help="Take-profit %% price move")
+    sg.add_argument("--sl", type=float, default=10.0, help="Stop-loss %% price move")
+    sg.add_argument("--full-send-confidence", type=float, default=1.1,
+                    help="If a pick's Claude confidence >= this, bet the entire bankroll on it (default 1.1 = off)")
     sg.add_argument("--yes", action="store_true", help="Skip the live-order confirmation prompt")
     sg.add_argument("--log", default="logs/signals.jsonl", help="JSONL file to append picks to")
     sg.add_argument("--no-log", action="store_true", help="Don't log this run")

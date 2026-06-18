@@ -229,6 +229,8 @@ class BybitClient:
         category: str = "linear",
         order_type: str = "Market",
         price: Optional[str] = None,
+        take_profit: Optional[str] = None,
+        stop_loss: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Place an order. No-op dry run unless BYBIT_EXECUTION_ENABLED=true."""
         self._require_auth()
@@ -241,6 +243,10 @@ class BybitClient:
         }
         if price is not None:
             body["price"] = price
+        if take_profit is not None:
+            body["takeProfit"] = take_profit
+        if stop_loss is not None:
+            body["stopLoss"] = stop_loss
 
         if not self.config.execution_enabled:
             return {"dryRun": True, "wouldSend": body}
