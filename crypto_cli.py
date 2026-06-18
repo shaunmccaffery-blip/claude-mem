@@ -148,7 +148,7 @@ def cmd_signal(args: argparse.Namespace) -> int:
                 print("Aborted — no orders placed.")
                 return 0
 
-    results = place_proposals(proposals)
+    results = place_proposals(proposals, leverage=args.leverage)
     print(json.dumps(results, indent=2))
     return 0
 
@@ -198,6 +198,7 @@ def build_parser() -> argparse.ArgumentParser:
     sg.add_argument("--claude", action="store_true", help="Filter candidates with the Claude analyst")
     sg.add_argument("--min-confidence", type=float, default=0.6, help="Min Claude confidence to keep")
     sg.add_argument("--execute", action="store_true", help="Place orders (needs BYBIT_EXECUTION_ENABLED=true)")
+    sg.add_argument("--leverage", type=int, default=10, help="Contract leverage to set per symbol")
     sg.add_argument("--yes", action="store_true", help="Skip the live-order confirmation prompt")
     sg.add_argument("--log", default="logs/signals.jsonl", help="JSONL file to append picks to")
     sg.add_argument("--no-log", action="store_true", help="Don't log this run")

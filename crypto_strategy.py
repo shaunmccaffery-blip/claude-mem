@@ -198,13 +198,14 @@ def generate_proposals(
 
 def place_proposals(
     proposals: List[Proposal],
+    leverage: int = 10,
     bybit: Optional[BybitClient] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Place a market BUY order on Bybit for each proposal.
+    Set leverage and place a market order (side per proposal) for each candidate.
 
-    SAFETY: each call goes through bybit.place_order, which is a no-op dry run
-    unless BYBIT_EXECUTION_ENABLED=true. Quantity is sized from suggested_usd /
+    SAFETY: both set_leverage and place_order are no-op dry runs unless
+    BYBIT_EXECUTION_ENABLED=true. Quantity is sized from suggested_usd /
     last_price; Bybit may reject orders below a symbol's minimum quantity or with
     the wrong step size — those errors are logged per-token, not fatal.
     """
@@ -213,15 +214,23 @@ def place_proposals(
     for p in proposals:
         if not p.last_price:
             continue
+        try:
+            bybit.set_leverage(p.bybit_symbol, leverage, category="linear")
+        except Exception as exc:
+            logger.warning("set_leverage failed for %s: %s", p.bybit_symbol, exc)
         qty = str(round(p.suggested_usd / p.last_price, 6))
         try:
             res = bybit.place_order(
                 symbol=p.bybit_symbol, side=p.side, qty=qty, category="linear"
             )
             results.append(
-                {"symbol": p.bybit_symbol, "side": p.side, "qty": qty, "result": res}
+                {"symbol": p.bybit_symbol, "side": p.side, "qty": qty,
+                 "leverage": leverage, "result": res}
             )
-            logger.info("order %s %s qty=%s -> %s", p.bybit_symbol, p.side, qty, res)
+            logger.info(
+                "order %s %s qty=%s lev=%sx -> %s",
+                p.bybit_symbol, p.side, qty, leverage, res,
+            )
         except Exception as exc:
             logger.warning("order failed for %s: %s", p.bybit_symbol, exc)
             results.append({"symbol": p.bybit_symbol, "qty": qty, "error": str(exc)})

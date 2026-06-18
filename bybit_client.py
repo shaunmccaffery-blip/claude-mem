@@ -246,6 +246,30 @@ class BybitClient:
             return {"dryRun": True, "wouldSend": body}
         return self._post("/v5/order/create", body)
 
+    def set_leverage(
+        self, symbol: str, leverage: int, category: str = "linear"
+    ) -> Dict[str, Any]:
+        """Set buy/sell leverage for a symbol. No-op dry run unless execution enabled.
+
+        Bybit returns retCode 110043 ('leverage not modified') when it's already
+        at the requested value — treated as success here.
+        """
+        self._require_auth()
+        if not self.config.execution_enabled:
+            return {"dryRun": True, "wouldSet": {"symbol": symbol, "leverage": leverage}}
+        body = {
+            "category": category,
+            "symbol": symbol,
+            "buyLeverage": str(leverage),
+            "sellLeverage": str(leverage),
+        }
+        try:
+            return self._post("/v5/position/set-leverage", body)
+        except BybitError as exc:
+            if "110043" in str(exc) or "not modified" in str(exc).lower():
+                return {"symbol": symbol, "leverage": leverage, "note": "already set"}
+            raise
+
 
 def _demo() -> None:
     client = BybitClient()
