@@ -68,8 +68,31 @@ def cmd_nansen(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_review(args: argparse.Namespace) -> int:
+    from crypto_strategy import review_log
+
+    rows = review_log(path=args.log)
+    if not rows:
+        print(f"no logged picks found in {args.log}")
+        return 0
+    for r in rows:
+        print(
+            f"{r['ts'][:19]}  {r['side'].upper():>4} {r['symbol']:<12} "
+            f"entry={r['entry_price']}  now={r['now_price']}  "
+            f"return={r['return_pct']:+.2f}%"
+        )
+    returns = [r["return_pct"] for r in rows]
+    wins = sum(1 for x in returns if x > 0)
+    print(
+        f"\n{len(returns)} picks | avg return {sum(returns)/len(returns):+.2f}% "
+        f"| win rate {wins}/{len(returns)} ({100*wins/len(returns):.0f}%)"
+    )
+    print("(hypothetical — no money traded)")
+    return 0
+
+
 def cmd_signal(args: argparse.Namespace) -> int:
-    from crypto_strategy import generate_proposals, place_proposals
+    from crypto_strategy import generate_proposals, place_proposals, log_proposals
 
     proposals = generate_proposals(
         bankroll_usd=args.bankroll,
@@ -97,6 +120,10 @@ def cmd_signal(args: argparse.Namespace) -> int:
         if claude:
             line += f"  [claude {claude['confidence']:.2f}: {claude['rationale']}]"
         print(line)
+
+    if not args.no_log:
+        path = log_proposals(proposals, path=args.log)
+        print(f"\nlogged {len(proposals)} picks to {path}")
 
     if not args.execute:
         print("\n(proposals only — no orders placed. Add --execute to trade.)")
@@ -172,7 +199,13 @@ def build_parser() -> argparse.ArgumentParser:
     sg.add_argument("--min-confidence", type=float, default=0.6, help="Min Claude confidence to keep")
     sg.add_argument("--execute", action="store_true", help="Place orders (needs BYBIT_EXECUTION_ENABLED=true)")
     sg.add_argument("--yes", action="store_true", help="Skip the live-order confirmation prompt")
+    sg.add_argument("--log", default="logs/signals.jsonl", help="JSONL file to append picks to")
+    sg.add_argument("--no-log", action="store_true", help="Don't log this run")
     sg.set_defaults(func=cmd_signal)
+
+    rv = sub.add_parser("review", help="Re-price logged picks vs current price (paper P&L)")
+    rv.add_argument("--log", default="logs/signals.jsonl", help="JSONL file to review")
+    rv.set_defaults(func=cmd_review)
 
     return p
 

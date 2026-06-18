@@ -16,6 +16,9 @@ nansen_client.py once you confirm the exact paths from your Nansen API docs.
 
 from __future__ import annotations
 
+import datetime as dt
+import json
+import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -247,3 +250,73 @@ def enrich_with_endpoint(
         except Exception as exc:
             logger.debug("enrich %s failed for %s: %s", path, p.token, exc)
     return proposals
+
+
+DEFAULT_LOG_PATH = "logs/signals.jsonl"
+
+
+def log_proposals(proposals: List[Proposal], path: str = DEFAULT_LOG_PATH) -> str:
+    """Append each proposal (with entry price + signals + UTC timestamp) as JSONL.
+
+    This is the record you review later to see whether the picks made money,
+    BEFORE risking real funds. Logged on every run, dry or live.
+    """
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    ts = dt.datetime.now(dt.timezone.utc).isoformat()
+    with open(path, "a") as fh:
+        for p in proposals:
+            fh.write(
+                json.dumps(
+                    {
+                        "ts": ts,
+                        "token": p.token,
+                        "symbol": p.bybit_symbol,
+                        "side": p.side,
+                        "netflow": p.netflow,
+                        "entry_price": p.last_price,
+                        "suggested_usd": p.suggested_usd,
+                        "claude": p.extras.get("claude"),
+                        "market": p.extras.get("market"),
+                    }
+                )
+                + "\n"
+            )
+    return path
+
+
+def review_log(
+    path: str = DEFAULT_LOG_PATH, bybit: Optional[BybitClient] = None
+) -> List[Dict[str, Any]]:
+    """Re-price each logged pick against the CURRENT Bybit price.
+
+    Returns a list of {ts, symbol, side, entry_price, now_price, return_pct}
+    where return_pct is the hypothetical return in the picked direction (longs
+    gain when price rises, shorts when it falls). No money is involved.
+    """
+    bybit = bybit or BybitClient()
+    out: List[Dict[str, Any]] = []
+    if not os.path.exists(path):
+        return out
+    with open(path) as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            rec = json.loads(line)
+            entry = rec.get("entry_price")
+            now = _bybit_symbol_tradable(bybit, rec["symbol"])
+            if not entry or not now:
+                continue
+            move = (now - entry) / entry
+            ret = move if rec.get("side", "Buy") == "Buy" else -move
+            out.append(
+                {
+                    "ts": rec.get("ts"),
+                    "symbol": rec["symbol"],
+                    "side": rec.get("side", "Buy"),
+                    "entry_price": entry,
+                    "now_price": now,
+                    "return_pct": round(ret * 100, 2),
+                }
+            )
+    return out
