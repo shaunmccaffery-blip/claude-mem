@@ -6,3 +6,5 @@ cryptography>=42.0.0
 tenacity>=9.0.0
 python-dotenv>=1.0.1
 anthropic>=0.45.0
+# Optional: TradingView technicals (--market). Safe to omit; provider no-ops without it.
+tradingview-ta>=3.3.0

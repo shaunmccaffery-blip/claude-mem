@@ -83,6 +83,7 @@ def cmd_signal(args: argparse.Namespace) -> int:
         use_claude=args.claude,
         min_confidence=args.min_confidence,
         allow_shorts=args.shorts,
+        use_market_data=args.market,
     )
     if not proposals:
         print("no tradable proposals")
@@ -166,6 +167,7 @@ def build_parser() -> argparse.ArgumentParser:
     sg.add_argument("--top", type=int, default=10)
     sg.add_argument("--all", action="store_true", help="Include non-smart-money")
     sg.add_argument("--shorts", action="store_true", help="Also short net-outflow tokens")
+    sg.add_argument("--market", action="store_true", help="Enrich with CoinGecko/CMC/TradingView/LunarCrush")
     sg.add_argument("--claude", action="store_true", help="Filter candidates with the Claude analyst")
     sg.add_argument("--min-confidence", type=float, default=0.6, help="Min Claude confidence to keep")
     sg.add_argument("--execute", action="store_true", help="Place orders (needs BYBIT_EXECUTION_ENABLED=true)")

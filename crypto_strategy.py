@@ -65,6 +65,7 @@ def generate_proposals(
     use_claude: bool = False,
     min_confidence: float = 0.6,
     allow_shorts: bool = False,
+    use_market_data: bool = False,
     nansen: Optional[NansenClient] = None,
     bybit: Optional[BybitClient] = None,
 ) -> List[Proposal]:
@@ -87,6 +88,12 @@ def generate_proposals(
         from claude_analyst import ClaudeAnalyst
 
         analyst = ClaudeAnalyst()
+
+    market = None
+    if use_market_data:
+        from market_data import MarketData
+
+        market = MarketData()
 
     def _rows(direction: str) -> List[Dict[str, Any]]:
         screened = nansen.token_screener(
@@ -136,6 +143,13 @@ def generate_proposals(
         )
 
         extras: Dict[str, Any] = {}
+
+        signals = None
+        if market is not None:
+            signals = market.enrich(symbol, bybit_symbol)
+            if signals:
+                extras["market"] = signals
+
         if analyst is not None:
             try:
                 verdict = analyst.evaluate(
@@ -144,6 +158,7 @@ def generate_proposals(
                     last_price=last_price,
                     side=side,
                     chain=row.get("chain", ""),
+                    signals=signals,
                 )
             except Exception as exc:
                 logger.warning("Claude analyst failed for %s: %s", symbol, exc)
