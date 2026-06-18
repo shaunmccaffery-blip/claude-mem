@@ -25,7 +25,12 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 import requests
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 try:
     from dotenv import load_dotenv
@@ -145,7 +150,12 @@ class BybitClient:
             )
         return data.get("result", {})
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, max=10))
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, max=10),
+        retry=retry_if_exception_type(requests.RequestException),
+        reraise=True,
+    )
     def _get(self, path: str, params: Dict[str, Any], auth: bool = False) -> Dict[str, Any]:
         query = "&".join(f"{k}={v}" for k, v in sorted(params.items()))
         headers = self._auth_headers(query) if auth else {}
@@ -155,7 +165,12 @@ class BybitClient:
         resp.raise_for_status()
         return self._unwrap(resp.json())
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, max=10))
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, max=10),
+        retry=retry_if_exception_type(requests.RequestException),
+        reraise=True,
+    )
     def _post(self, path: str, body: Dict[str, Any]) -> Dict[str, Any]:
         payload = json.dumps(body, separators=(",", ":"))
         headers = self._auth_headers(payload)

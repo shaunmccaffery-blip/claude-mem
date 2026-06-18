@@ -20,7 +20,12 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 import requests
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 try:
     from dotenv import load_dotenv
@@ -62,7 +67,12 @@ class NansenClient:
         self._require_auth()
         return {"apiKey": self.config.api_key, "Content-Type": "application/json"}
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, max=10))
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, max=10),
+        retry=retry_if_exception_type(requests.RequestException),
+        reraise=True,
+    )
     def request(
         self,
         method: str,
