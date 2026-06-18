@@ -4,6 +4,7 @@ dist/
 __pycache__/
 *.pyc
 *.log
+*.pem
 logs/
 .DS_Store
 .env
