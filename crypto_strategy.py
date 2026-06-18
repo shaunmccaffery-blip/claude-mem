@@ -68,6 +68,7 @@ def generate_proposals(
     use_claude: bool = False,
     min_confidence: float = 0.6,
     full_send_confidence: float = 1.1,
+    all_in: bool = False,
     allow_shorts: bool = False,
     use_market_data: bool = False,
     nansen: Optional[NansenClient] = None,
@@ -189,6 +190,11 @@ def generate_proposals(
             else:
                 # Otherwise scale size by the analyst's confidence.
                 usd = round(usd * verdict.confidence, 2)
+
+        if all_in:
+            # Override sizing: commit the full bankroll to this candidate.
+            usd = round(bankroll_usd, 2)
+            extras["all_in"] = True
 
         proposals.append(
             Proposal(

@@ -106,6 +106,7 @@ def cmd_signal(args: argparse.Namespace) -> int:
         use_claude=args.claude,
         min_confidence=args.min_confidence,
         full_send_confidence=args.full_send_confidence,
+        all_in=args.all_in,
         allow_shorts=args.shorts,
         use_market_data=args.market,
     )
@@ -206,6 +207,8 @@ def build_parser() -> argparse.ArgumentParser:
     sg.add_argument("--sl", type=float, default=10.0, help="Stop-loss %% price move")
     sg.add_argument("--full-send-confidence", type=float, default=1.1,
                     help="If a pick's Claude confidence >= this, bet the entire bankroll on it (default 1.1 = off)")
+    sg.add_argument("--all-in", action="store_true",
+                    help="Put the full bankroll on each pick (use with --top 1; no Claude needed)")
     sg.add_argument("--yes", action="store_true", help="Skip the live-order confirmation prompt")
     sg.add_argument("--log", default="logs/signals.jsonl", help="JSONL file to append picks to")
     sg.add_argument("--no-log", action="store_true", help="Don't log this run")
