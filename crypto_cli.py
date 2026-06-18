@@ -69,7 +69,7 @@ def cmd_nansen(args: argparse.Namespace) -> int:
 
 
 def cmd_signal(args: argparse.Namespace) -> int:
-    from crypto_strategy import generate_proposals
+    from crypto_strategy import generate_proposals, place_proposals
 
     proposals = generate_proposals(
         bankroll_usd=args.bankroll,
@@ -80,16 +80,48 @@ def cmd_signal(args: argparse.Namespace) -> int:
         kelly_fraction=args.kelly_fraction,
         max_position_pct=args.max_position_pct,
         top_n=args.top,
+        use_claude=args.claude,
+        min_confidence=args.min_confidence,
+        allow_shorts=args.shorts,
     )
     if not proposals:
         print("no tradable proposals")
         return 0
     for p in proposals:
-        print(
-            f"{p.token:>8} -> {p.bybit_symbol:<12} "
+        line = (
+            f"{p.side.upper():>4} {p.token:>8} -> {p.bybit_symbol:<12} "
             f"netflow={p.netflow}  px={p.last_price}  size=${p.suggested_usd}"
         )
-    print("\n(proposals only — no orders placed)")
+        claude = p.extras.get("claude")
+        if claude:
+            line += f"  [claude {claude['confidence']:.2f}: {claude['rationale']}]"
+        print(line)
+
+    if not args.execute:
+        print("\n(proposals only — no orders placed. Add --execute to trade.)")
+        return 0
+
+    # --- live execution path (double-gated) ---
+    import os
+
+    if os.getenv("BYBIT_EXECUTION_ENABLED", "false").lower() != "true":
+        print(
+            "\n--execute given but BYBIT_EXECUTION_ENABLED is not 'true' in .env.\n"
+            "Orders will be DRY-RUN only (nothing placed). Set it to true to go live."
+        )
+    else:
+        print(
+            f"\n⚠️  About to place {len(proposals)} REAL orders with REAL money "
+            f"on {'TESTNET' if os.getenv('BYBIT_TESTNET','true').lower()!='false' else 'MAINNET'}."
+        )
+        if not args.yes:
+            confirm = input("Type 'yes' to confirm: ").strip().lower()
+            if confirm != "yes":
+                print("Aborted — no orders placed.")
+                return 0
+
+    results = place_proposals(proposals)
+    print(json.dumps(results, indent=2))
     return 0
 
 
@@ -133,6 +165,11 @@ def build_parser() -> argparse.ArgumentParser:
     sg.add_argument("--max-position-pct", type=float, default=0.25)
     sg.add_argument("--top", type=int, default=10)
     sg.add_argument("--all", action="store_true", help="Include non-smart-money")
+    sg.add_argument("--shorts", action="store_true", help="Also short net-outflow tokens")
+    sg.add_argument("--claude", action="store_true", help="Filter candidates with the Claude analyst")
+    sg.add_argument("--min-confidence", type=float, default=0.6, help="Min Claude confidence to keep")
+    sg.add_argument("--execute", action="store_true", help="Place orders (needs BYBIT_EXECUTION_ENABLED=true)")
+    sg.add_argument("--yes", action="store_true", help="Skip the live-order confirmation prompt")
     sg.set_defaults(func=cmd_signal)
 
     return p
