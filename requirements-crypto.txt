@@ -1,0 +1,10 @@
+# Minimal dependencies for the Bybit + Nansen crypto tools
+# (bybit_client.py, nansen_client.py, trading_common.py, crypto_strategy.py, crypto_cli.py)
+# Install with:  python -m pip install -r requirements-crypto.txt
+requests>=2.32.0
+cryptography>=42.0.0
+tenacity>=9.0.0
+python-dotenv>=1.0.1
+anthropic>=0.45.0
+# Optional: TradingView technicals (--market). Safe to omit; provider no-ops without it.
+tradingview-ta>=3.3.0
