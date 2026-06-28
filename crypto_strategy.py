@@ -137,8 +137,12 @@ def generate_proposals(
             continue  # not tradable on Bybit perps; skip
 
         netflow_val = float(row.get("netflow") or 0)
+        if netflow_val == 0:
+            continue  # no signal either way
         # Net inflow -> long (Buy); net outflow -> short (Sell).
         side = "Sell" if netflow_val < 0 else "Buy"
+        if side == "Sell" and not allow_shorts:
+            continue  # don't short unless explicitly enabled
         usd = fractional_kelly_size(
             bankroll_usd=bankroll_usd,
             edge=edge_per_signal,
